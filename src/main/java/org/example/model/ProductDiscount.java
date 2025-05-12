@@ -2,8 +2,11 @@ package org.example.model;
 
 import java.time.LocalDate;
 
+import org.springframework.cglib.core.Local;
+
 import com.opencsv.bean.CsvBindByName;
 import com.opencsv.bean.CsvDate;
+import org.example.util.CsvUtils;
 
 public class ProductDiscount {
 
@@ -26,22 +29,24 @@ public class ProductDiscount {
   private String productCategory;
 
   @CsvBindByName(column = "from_date")
-  @CsvDate("MM/dd/yyyy")
-  private LocalDate fromDate;
+  private String fromDate_string;
 
   @CsvBindByName(column = "to_date")
-  @CsvDate("MM/dd/yyyy")
-  private LocalDate toDate;
+  private String toDate_string;
 
   @CsvBindByName(column = "percentage_of_discount")
   private Float percentage_of_discount;
+
+  private LocalDate fromDate_date = null;
+
+  private LocalDate toDate_date = null;
 
   public ProductDiscount() {
   }
 
   public ProductDiscount(String id, String name, String brand, Float quantity, String unit, String category,
-      LocalDate from,
-      LocalDate to, Float discount) {
+      String from,
+      String to, Float discount) {
 
     this.productId = id;
     this.productName = name;
@@ -49,9 +54,10 @@ public class ProductDiscount {
     this.packageQuantity = quantity;
     this.packageUnit = unit;
     this.productCategory = category;
-    this.fromDate = from;
-    this.toDate = to;
+    this.fromDate_string = from;
+    this.toDate_string = to;
     this.percentage_of_discount = discount;
+
   }
 
   public String getproductId() {
@@ -78,15 +84,27 @@ public class ProductDiscount {
     return productCategory;
   }
 
-  public LocalDate getFromDate() {
-    return fromDate;
+  public String getFromDateString() {
+    return fromDate_string;
   }
 
-  public LocalDate getToDate() {
-    return toDate;
+  public String getToDateString() {
+    return toDate_string;
   }
 
   public Float getPercentageOfDiscount() {
     return percentage_of_discount;
+  }
+
+  public LocalDate getFromDate() {
+    if (fromDate_date == null)
+      fromDate_date = CsvUtils.transformFromStringToLocalDate(this.fromDate_string);
+    return fromDate_date;
+  }
+
+  public LocalDate getToDate() {
+    if (toDate_date == null)
+      toDate_date = CsvUtils.transformFromStringToLocalDate(this.toDate_string);
+    return toDate_date;
   }
 }
