@@ -60,7 +60,7 @@ public class ProductDiscount {
 
   }
 
-  public String getproductId() {
+  public String getProductId() {
     return productId;
   }
 

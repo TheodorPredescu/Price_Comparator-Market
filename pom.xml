@@ -15,6 +15,14 @@
     </parent>
 
     <dependencies>
+
+        <!-- For BOMInputStream -->
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.15.1</version> <!-- or latest -->
+        </dependency>
+
         <!-- Core Spring Boot dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

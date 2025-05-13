@@ -17,6 +17,8 @@ import java.util.Map;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.stereotype.Repository;
 
+import org.apache.commons.io.input.BOMInputStream;
+
 import com.opencsv.bean.CsvToBean;
 import com.opencsv.bean.CsvToBeanBuilder;
 
@@ -88,6 +90,10 @@ public class ProductRepository {
     if (headerLine == null)
       throw new RuntimeException("CSV is empty");
 
+    // For UTF-8: it starts with <feff>
+    if (headerLine != null && headerLine.startsWith("\uFEFF"))
+      headerLine = headerLine.substring(1);
+
     char separator = headerLine.contains(";") ? ';' : ',';
 
     // Re-open input stream to re-read from the beginning
@@ -108,24 +114,36 @@ public class ProductRepository {
 
   public List<ProductDiscount> returnProductDiscountFromSpecificCSV(String csv_name) throws Exception {
     String pathToCSV = "data/" + csv_name;
-    InputStream input = getClass().getClassLoader().getResourceAsStream(pathToCSV);
-    if (input == null)
+    InputStream rawInput = getClass().getClassLoader().getResourceAsStream(pathToCSV);
+    if (rawInput == null)
       throw new RuntimeException("CSV file not found");
 
+    BOMInputStream input = new BOMInputStream(rawInput);
     // Wrap in BufferedReader to peek at the first line
     BufferedReader reader = new BufferedReader(new InputStreamReader(input));
     String headerLine = reader.readLine();
     if (headerLine == null)
       throw new RuntimeException("CSV is empty");
 
+    // For UTF-8: it starts with <feff>
+    if (headerLine != null && headerLine.startsWith("\uFEFF"))
+      headerLine = headerLine.substring(1);
+
     char separator = headerLine.contains(";") ? ';' : ',';
+    String sep = headerLine.contains(";") ? ";" : ",";
+
+    for (String column : headerLine.split(sep)) {
+
+      System.out.println("Column: [" + column + "]");
+    }
 
     // Re-open input stream to re-read from the beginning
     reader.close();
-    input = getClass().getClassLoader().getResourceAsStream(pathToCSV);
+    rawInput = getClass().getClassLoader().getResourceAsStream(pathToCSV);
     if (input == null)
       throw new RuntimeException("CSV file not found");
 
+    input = new BOMInputStream(rawInput);
     CsvToBean<ProductDiscount> csvToBean = new CsvToBeanBuilder<ProductDiscount>(new InputStreamReader(input))
         .withType(ProductDiscount.class)
         .withSeparator(separator)

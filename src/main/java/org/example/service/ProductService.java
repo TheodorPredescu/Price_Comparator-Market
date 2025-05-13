@@ -73,17 +73,13 @@ public class ProductService {
       if (discountedPriceResources.containsKey(store_name)) {
         List<Resource> discountsForSpecificStore = discountedPriceResources.get(store_name);
 
-        System.out.println("date mother: " + dateCsvWasTaken);
-
         for (Resource resDisc : discountsForSpecificStore) {
 
-          System.out.println("List element: " + resDisc.getFilename());
-          System.out.println("date son: " + CsvUtils.extractDate(resDisc));
           if (dateCsvWasTaken.equals(CsvUtils.extractDate(resDisc))) {
 
-            System.out.println("???????????");
             discountsList = productRepository.returnProductDiscountFromSpecificCSV(resDisc.getFilename());
-            System.out.println("Found discount list for " + name + " of size: " + discountsList.size());
+            System.out.println("Found discount list for " + name + " of size: " + discountsList.size() + "\n\t"
+                + resDisc.getFilename());
             break;
           }
         }
@@ -111,35 +107,19 @@ public class ProductService {
       // CsvUtils.printOneProduct(prod);
       ProductDiscount prodDisc = searchProductInDiscountsList(prod, productDiscountsList);
 
-      System.out.println();
-      System.out.println("Processed discounts");
-      System.out.println();
-
-      if (prodDisc == null) {
-        System.out.println();
-        System.out.println("Discounts null");
-        System.out.println();
+      if (prodDisc == null)
         continue;
-      }
-      System.out
-          .println("Product: " + prodDisc.getProductName() + ", percentage: " + prodDisc.getPercentageOfDiscount());
 
       System.out.println(
-          prodDisc.getProductName() + " : " + prodDisc.getFromDateString() + " -> " + prodDisc.getToDateString());
+          prodDisc.getProductName() + " : " + prodDisc.getFromDateString() + " -> " + prodDisc.getToDateString()
+              + " percentage: " + prodDisc.getPercentageOfDiscount());
 
-      // DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy");
-      // String fromDate = prodDisc.getFromDate().format(formatter);
-      // String toDate = prodDisc.getToDate().format(formatter);
-      // System.out.println("From : " + fromDate + " to : " + toDate);
-
-      System.err.println("Does it work?");
-      if (!(prodDisc.getFromDate().isBefore(date) &&
-          prodDisc.getToDate().isAfter(date)))
+      if (date.isBefore(prodDisc.getFromDate()) || date.isAfter(prodDisc.getToDate()))
         continue;
 
-      prod.setPrice(prod.getPrice() * prodDisc.getPercentageOfDiscount() / 100);
+      prod.setPrice(prod.getPrice() * (100 - prodDisc.getPercentageOfDiscount()) / 100);
       System.out.println("Discount applied to product " + prod.getProductName() +
-          "in value of "
+          " in value of "
           + prodDisc.getPercentageOfDiscount() + "%.");
     }
 
@@ -150,7 +130,7 @@ public class ProductService {
 
     String prodId = product.getProductId();
     for (ProductDiscount prodDisc : productDiscounts) {
-      if (prodId.equals(prodDisc.getproductId()))
+      if (prodId.equals(prodDisc.getProductId()))
         return prodDisc;
     }
 

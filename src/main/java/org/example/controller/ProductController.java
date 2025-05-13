@@ -16,8 +16,7 @@ public class ProductController {
   public void loadProducts() {
     ProductService productService = new ProductService();
 
-    String name = "kaufland_2025-05-08.csv";
-    LocalDate date = LocalDate.of(2025, 5, 10);
+    LocalDate date = LocalDate.of(2025, 5, 8);
 
     try {
       productService.getDiscountListBasedOnStore("kaufland", date);
