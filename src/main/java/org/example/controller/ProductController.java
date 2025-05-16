@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.time.Period;
 import java.util.List;
 import java.util.Map;
 
@@ -36,11 +37,16 @@ public class ProductController {
   @GetMapping("/")
   public void newDiscounts() {
 
-    LocalDate date = LocalDate.of(2020, 5, 13);
-
-    List<Product> ceva = productService.getDiscountedPricesListBasedOnStore("kauflant", date);
     try {
 
+      Period now = Period.ofDays(100);
+      List<Map.Entry<String, ProductDiscount>> topDiscounts = productService.getNewDiscounts(now);
+
+      for (Map.Entry<String, ProductDiscount> elem : topDiscounts) {
+        System.out.println("Store: " + elem.getKey() + "\n\tProduct: " + elem.getValue().getProductName() + " -> "
+            + elem.getValue().getPercentageOfDiscount() + "\n\tfrom: " + elem.getValue().getFromDateString() + "; to: "
+            + elem.getValue().getToDateString());
+      }
     } catch (Exception e) {
       System.err.println("Error: " + e.getMessage());
     }

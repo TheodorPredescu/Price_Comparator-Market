@@ -30,12 +30,21 @@ public class ProductRepository {
   private Map<String, List<Resource>> discountsPriceResources;
 
   // ------------------------------------------------------------------------------------------
-
   public Map<String, List<Resource>> getFullPriceResources() {
+    try {
+      readResources();
+    } catch (Exception e) {
+      System.err.println("Error at reading resources: " + e.getMessage());
+    }
     return fullPriceResources;
   }
 
   public Map<String, List<Resource>> getDiscountsPriceResources() {
+    try {
+      readResources();
+    } catch (Exception e) {
+      System.err.println("Error at reading resources: " + e.getMessage());
+    }
     return discountsPriceResources;
   }
 
@@ -43,7 +52,7 @@ public class ProductRepository {
 
   // I need to run this before I call anything else, because here I set
   // fullPriceResources and discountedPriceResources
-  public void readResources() throws IOException {
+  private void readResources() throws IOException {
 
     // Getting the data from resources data and selecting it based on the
     PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
@@ -108,6 +117,8 @@ public class ProductRepository {
   // ------------------------------------------------------------------------------------------
   public List<Product> returnProductFromSpecificCSV(String csv_name) throws Exception {
 
+    readResources();
+
     String pathToCSV = "data/" + csv_name;
     InputStream input = getClass().getClassLoader().getResourceAsStream(pathToCSV);
     if (input == null)
@@ -143,6 +154,9 @@ public class ProductRepository {
 
   // ------------------------------------------------------------------------------------------
   public List<ProductDiscount> returnProductDiscountFromSpecificCSV(String csv_name) throws Exception {
+
+    readResources();
+
     String pathToCSV = "data/" + csv_name;
     InputStream rawInput = getClass().getClassLoader().getResourceAsStream(pathToCSV);
     if (rawInput == null)

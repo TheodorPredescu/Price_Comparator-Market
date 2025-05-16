@@ -1,6 +1,9 @@
 package org.example.service;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.Period;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,22 +27,18 @@ public class ProductService {
   // --------------------------------------------------------------------------------------
   public List<Product> getDiscountedPricesListBasedOnStore(String store, LocalDate date) {
 
-    List<Product> productsListWithDiscounts = new ArrayList<>();
-
     if (store == null) {
-      System.err.println("Store name is null");
-      return productsListWithDiscounts;
-    }
-
-    store = store.toLowerCase();
-
-    try {
-      productRepository.readResources();
-    } catch (Exception e) {
-      System.err.println("Error: " + e.getMessage());
+      System.err.println("Store name is null; cannot continue");
       return new ArrayList<>();
     }
 
+    if (date == null) {
+      System.err.println("Date null, getting current date as variable");
+      date = LocalDate.now();
+    }
+
+    List<Product> productsListWithDiscounts = new ArrayList<>();
+    store = store.toLowerCase();
     Map<String, List<Resource>> fullPriceResources = productRepository.getFullPriceResources();
 
     if (!fullPriceResources.containsKey(store)) {
@@ -76,7 +75,6 @@ public class ProductService {
   public List<Map.Entry<String, ProductDiscount>> getBestDiscounts(int nr_top) throws Exception {
 
     Map<String, Resource> allDiscounts = productRepository.returnLatestResources();
-    // Map<String, ProductDiscount> bestDiscounts = new LinkedHashMap<>();
     List<Map.Entry<String, ProductDiscount>> bestDiscounts = new ArrayList<>();
 
     for (Map.Entry<String, Resource> entry : allDiscounts.entrySet()) {
@@ -87,7 +85,6 @@ public class ProductService {
           .returnProductDiscountFromSpecificCSV(entry.getValue().getFilename());
 
       for (ProductDiscount discount : allOfInstanceDiscounts) {
-        // bestDiscounts.put(entry.getKey(), discount);
         bestDiscounts.add(new AbstractMap.SimpleEntry<>(entry.getKey(), discount));
       }
     }
@@ -105,8 +102,27 @@ public class ProductService {
   }
 
   // --------------------------------------------------------------------------------------
-  public void getNewDiscounts() {
+  // TODO
+  public List<Map.Entry<String, ProductDiscount>> getNewDiscounts(Period daysAgo) throws Exception {
 
+    Map<String, Resource> allDiscountsNames = productRepository.returnLatestResources();
+    List<Map.Entry<String, ProductDiscount>> bestDiscounts = new ArrayList<>();
+
+    for (Map.Entry<String, Resource> entry : allDiscountsNames.entrySet()) {
+
+      System.out.println(entry.getKey() + " ==> " + entry.getValue().getFilename());
+
+      List<ProductDiscount> allOfInstanceDiscounts = productRepository
+          .returnProductDiscountFromSpecificCSV(entry.getValue().getFilename());
+
+      for (ProductDiscount discount : allOfInstanceDiscounts) {
+        bestDiscounts.add(new AbstractMap.SimpleEntry<>(entry.getKey(), discount));
+      }
+    }
+
+    System.out.println("Size of all: " + bestDiscounts.size());
+
+    return filterByRecentAppearence(bestDiscounts, daysAgo);
   }
 
   // --------------------------------------------------------------------------------------
@@ -119,6 +135,18 @@ public class ProductService {
             e2.getValue().getPercentageOfDiscount(),
             e1.getValue().getPercentageOfDiscount()))
         .limit(nr_top)
+        .collect(Collectors.toList());
+  }
+
+  // --------------------------------------------------------------------------------------
+
+  private List<Map.Entry<String, ProductDiscount>> filterByRecentAppearence(
+      List<Map.Entry<String, ProductDiscount>> discounts, Period daysAgo) {
+
+    LocalDate cutoff = LocalDate.now().minus(daysAgo);
+    System.err.println(String.valueOf(cutoff));
+    return discounts.stream()
+        .filter(entry -> !entry.getValue().getFromDate().isBefore(cutoff))
         .collect(Collectors.toList());
   }
 
