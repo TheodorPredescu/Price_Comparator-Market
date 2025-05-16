@@ -1,35 +1,48 @@
 package org.example.controller;
 
 import org.example.model.Product;
+import org.example.model.ProductDiscount;
 import org.example.service.ProductService;
-import org.example.repository.ProductRepository;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 public class ProductController {
 
-  @GetMapping("/products")
-  public void loadProducts() {
-    ProductService productService = new ProductService();
+  ProductService productService = new ProductService();
 
-    LocalDate date = LocalDate.of(2025, 5, 8);
+  @GetMapping("/getBestDiscounts")
+  public void bestDiscounts() {
 
     try {
-      productService.getDiscountListBasedOnStore("kaufland", date);
+      // The string is the store name
+      // Those are based only by the latest data (data that is in the older csv-s is
+      // considered expired)
+      List<Map.Entry<String, ProductDiscount>> topDiscounts = productService.getBestDiscounts(20);
 
-      // productService.returnProductFromSpecificCSV(name);
-      // for (Product product : products) {
-      // System.out.println(product.getProductName() + "->" + product.getPrice() +
-      // " "
-      // + product.getCurrency());
-      // }
+      for (Map.Entry<String, ProductDiscount> elem : topDiscounts) {
+        System.out.println("Store: " + elem.getKey() + "\n\tProduct: " + elem.getValue().getProductName() + " -> "
+            + elem.getValue().getPercentageOfDiscount());
+      }
     } catch (Exception ex) {
-      System.out.println("Not working");
-      throw new RuntimeException(ex);
+      System.err.println("Error: " + ex.getMessage());
+    }
+  }
+
+  @GetMapping("/")
+  public void newDiscounts() {
+
+    LocalDate date = LocalDate.of(2020, 5, 13);
+
+    List<Product> ceva = productService.getDiscountedPricesListBasedOnStore("kauflant", date);
+    try {
+
+    } catch (Exception e) {
+      System.err.println("Error: " + e.getMessage());
     }
   }
 }

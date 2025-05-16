@@ -75,7 +75,7 @@ public class CsvUtils {
     System.out.println();
     System.out.println();
 
-    for (Map.Entry<String, List<Resource>> entry : productRepository.getDiscountedPriceResources().entrySet()) {
+    for (Map.Entry<String, List<Resource>> entry : productRepository.getDiscountsPriceResources().entrySet()) {
       System.out.println(entry.getKey() + ":");
       for (Resource res : entry.getValue()) {
         System.out.println(res.getFilename());

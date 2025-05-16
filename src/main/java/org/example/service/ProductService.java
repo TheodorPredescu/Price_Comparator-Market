@@ -1,10 +1,11 @@
 package org.example.service;
 
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.example.model.Product;
 import org.example.model.ProductDiscount;
@@ -13,44 +14,112 @@ import org.example.util.CsvUtils;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 
+import ch.qos.logback.core.joran.sanity.Pair;
+
 @Service
 public class ProductService {
 
   ProductRepository productRepository = new ProductRepository();
 
   // --------------------------------------------------------------------------------------
-  public List<Product> getDiscountListBasedOnStore(String store, LocalDate date) throws Exception {
+  public List<Product> getDiscountedPricesListBasedOnStore(String store, LocalDate date) {
 
-    List<Product> productsList = new ArrayList<>();
+    List<Product> productsListWithDiscounts = new ArrayList<>();
+
+    if (store == null) {
+      System.err.println("Store name is null");
+      return productsListWithDiscounts;
+    }
 
     store = store.toLowerCase();
-    productRepository.readResources();
+
+    try {
+      productRepository.readResources();
+    } catch (Exception e) {
+      System.err.println("Error: " + e.getMessage());
+      return new ArrayList<>();
+    }
 
     Map<String, List<Resource>> fullPriceResources = productRepository.getFullPriceResources();
 
     if (!fullPriceResources.containsKey(store)) {
       System.out.println("Store not found");
+      return null;
     }
 
     for (Resource res : fullPriceResources.get(store)) {
+      List<Product> productsList;
 
-      // Might throw exception
-      productsList = productRepository.returnProductFromSpecificCSV(res.getFilename());
+      try {
+        productsList = productRepository.returnProductFromSpecificCSV(res.getFilename());
+      } catch (Exception e) {
+        System.err.println("Error at reading file: " + res.getFilename() + " ->" + e.getMessage());
+        continue;
+      }
+
       List<ProductDiscount> prodDisc = getDiscountsBasedOnStoreCsvFormat(res);
-      System.err.println();
-      System.err.println("Now getting info from " + res.getFilename());
-      System.err.println();
 
-      List<Product> productsListWithDiscounts = combinePricesWithDiscounts(productsList, prodDisc, date);
+      if (prodDisc.isEmpty())
+        continue;
 
-      System.err.println();
-      System.err.println();
-      for (Product product : productsListWithDiscounts) {
-        System.out.println(product.getProductId() + ":" + product.getProductName() + " -> " + product.getPrice());
+      productsListWithDiscounts.addAll(combinePricesWithDiscounts(productsList, prodDisc, date));
+    }
+
+    for (Product product : productsListWithDiscounts) {
+      System.out.println(product.getProductId() + ":" + product.getProductName() + " -> " + product.getPrice());
+    }
+
+    return productsListWithDiscounts;
+  }
+
+  // --------------------------------------------------------------------------------------
+  public List<Map.Entry<String, ProductDiscount>> getBestDiscounts(int nr_top) throws Exception {
+
+    Map<String, Resource> allDiscounts = productRepository.returnLatestResources();
+    // Map<String, ProductDiscount> bestDiscounts = new LinkedHashMap<>();
+    List<Map.Entry<String, ProductDiscount>> bestDiscounts = new ArrayList<>();
+
+    for (Map.Entry<String, Resource> entry : allDiscounts.entrySet()) {
+
+      System.out.println(entry.getKey() + " ==> " + entry.getValue().getFilename());
+
+      List<ProductDiscount> allOfInstanceDiscounts = productRepository
+          .returnProductDiscountFromSpecificCSV(entry.getValue().getFilename());
+
+      for (ProductDiscount discount : allOfInstanceDiscounts) {
+        // bestDiscounts.put(entry.getKey(), discount);
+        bestDiscounts.add(new AbstractMap.SimpleEntry<>(entry.getKey(), discount));
       }
     }
 
+    System.out.println("Size of all: " + bestDiscounts.size());
+
+    return sortByTopProcentage(bestDiscounts, nr_top);
+  }
+
+  // --------------------------------------------------------------------------------------
+  // TODO: Get the best price for a specific productID
+  public Pair<String, Product> getBestPriceForProduct(String productID) {
+
     return null;
+  }
+
+  // --------------------------------------------------------------------------------------
+  public void getNewDiscounts() {
+
+  }
+
+  // --------------------------------------------------------------------------------------
+  private List<Map.Entry<String, ProductDiscount>> sortByTopProcentage(
+      List<Map.Entry<String, ProductDiscount>> discounts,
+      int nr_top) {
+
+    return discounts.stream()
+        .sorted((e1, e2) -> Float.compare(
+            e2.getValue().getPercentageOfDiscount(),
+            e1.getValue().getPercentageOfDiscount()))
+        .limit(nr_top)
+        .collect(Collectors.toList());
   }
 
   // --------------------------------------------------------------------------------------
@@ -61,7 +130,7 @@ public class ProductService {
     String name = res.getFilename();
     String store_name = CsvUtils.extractStoreName(res);
     LocalDate dateCsvWasTaken = CsvUtils.extractDate(res);
-    Map<String, List<Resource>> discountedPriceResources = productRepository.getDiscountedPriceResources();
+    Map<String, List<Resource>> discountedPriceResources = productRepository.getDiscountsPriceResources();
 
     System.err.println();
     System.err.println();
@@ -85,6 +154,7 @@ public class ProductService {
         }
       } else {
         System.out.println("No discount list found for the name " + store_name);
+        return new ArrayList<>();
       }
 
     } catch (Exception e) {
@@ -126,6 +196,7 @@ public class ProductService {
     return productsList;
   }
 
+  // --------------------------------------------------------------------------------------
   private ProductDiscount searchProductInDiscountsList(Product product, List<ProductDiscount> productDiscounts) {
 
     String prodId = product.getProductId();
@@ -137,6 +208,5 @@ public class ProductService {
     return null;
   }
 
-  // --------------------------------------------------------------------------------------
   // --------------------------------------------------------------------------------------
 }
