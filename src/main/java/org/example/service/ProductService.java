@@ -16,8 +16,6 @@ import org.example.util.CsvUtils;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 
-import ch.qos.logback.core.joran.sanity.Pair;
-
 @Service
 public class ProductService {
 
@@ -49,7 +47,7 @@ public class ProductService {
             List<Product> productsList;
 
             try {
-                productsList = productRepository.returnProductFromSpecificCSV(res.getFilename());
+                productsList = productRepository.returnProductsFromSpecificCSV(res.getFilename());
             } catch (Exception e) {
                 System.err.println("Error at reading file: " + res.getFilename() + " ->" + e.getMessage());
                 continue;
@@ -73,7 +71,7 @@ public class ProductService {
     // --------------------------------------------------------------------------------------
     public List<Map.Entry<String, ProductDiscount>> getBestDiscounts(int nr_top) throws Exception {
 
-        Map<String, Resource> allDiscounts = productRepository.returnLatestResources();
+        Map<String, Resource> allDiscounts = productRepository.returnLatestResourcesDiscounts();
         List<Map.Entry<String, ProductDiscount>> bestDiscounts = new ArrayList<>();
 
         for (Map.Entry<String, Resource> entry : allDiscounts.entrySet()) {
@@ -99,14 +97,13 @@ public class ProductService {
     // trends over time for individual products.
     // o This data should be filterable by store, product category, or brand.
     // It will not be affected by discounts, it will be only with base prices
-    // TODO
     public List<PriceHistory> priceHistoryForGraphs() throws Exception {
         List<PriceHistory> allPricesWithInfo = new ArrayList<>();
         Map<String, List<Resource>> allCsvFiles = productRepository.getFullPriceResources();
 
         for (Map.Entry<String, List<Resource>> entry : allCsvFiles.entrySet()) {
             for (Resource elem : entry.getValue()) {
-                List<Product> prodList = productRepository.returnProductFromSpecificCSV(elem.getFilename());
+                List<Product> prodList = productRepository.returnProductsFromSpecificCSV(elem.getFilename());
                 if (prodList.isEmpty())
                     continue;
                 for (Product prod : prodList) {
@@ -121,17 +118,43 @@ public class ProductService {
     }
 
     // --------------------------------------------------------------------------------------
-    // TODO: Get the best price for a specific productID
-    public Pair<String, Product> getBestPriceForProduct(String productID) {
+    // Daily Shopping Basket Monitoring
+    public List<Map.Entry<String, Product>> getBestPriceForProducts(List<String> productIdList) {
 
-        return null;
+        List<Map.Entry<String, Product>> productsFoundList = new ArrayList<>();
+        LocalDate currentDate = LocalDate.now();
+
+        for (String productId : productIdList) {
+
+            // Product product;
+            Map.Entry<String, Product> storeNameAndProduct = null;
+
+            // We check if we found every product
+            try {
+                storeNameAndProduct = getBestProductBasedOnIp(productId, currentDate);
+
+                // getBestProductBasedOnIp() will throw null if the product was not found;
+                // probably I could have made it cleaner with throw
+                if (storeNameAndProduct.getKey() == null)
+                    throw new Exception("Product " + productId + " not found.");
+
+            } catch (Exception e) {
+                System.out.println("Error at searching for product with id " + productId);
+                System.out.println(e.getMessage());
+                continue;
+            }
+
+            productsFoundList.add(storeNameAndProduct);
+
+        }
+
+        return productsFoundList;
     }
 
     // --------------------------------------------------------------------------------------
-    // TODO
     public List<Map.Entry<String, ProductDiscount>> getNewDiscounts(Period daysAgo) throws Exception {
 
-        Map<String, Resource> allDiscountsNames = productRepository.returnLatestResources();
+        Map<String, Resource> allDiscountsNames = productRepository.returnLatestResourcesDiscounts();
         List<Map.Entry<String, ProductDiscount>> bestDiscounts = new ArrayList<>();
 
         for (Map.Entry<String, Resource> entry : allDiscountsNames.entrySet()) {
@@ -265,4 +288,75 @@ public class ProductService {
     }
 
     // --------------------------------------------------------------------------------------
+    // If the product is not found, it will return a null pointer
+    private Map.Entry<String, Product> getBestProductBasedOnIp(String id, LocalDate dateBasketWasMade)
+            throws Exception {
+
+        Map<String, Resource> productCsvFilesList = productRepository.returnLatestResources();
+
+        String store = null;
+        Product bestProductFound = null;
+
+        for (Map.Entry<String, Resource> entry : productCsvFilesList.entrySet()) {
+            List<Product> productList = productRepository.returnProductsFromSpecificCSV(entry.getValue().getFilename());
+
+            for (Product product : productList) {
+
+                if (product.getProductId().equals(id)) {
+
+                    // Need to aply discount if it has
+                    product = applyDiscountIfPresent(entry.getValue(), product, dateBasketWasMade);
+
+                    if (bestProductFound == null) {
+                        bestProductFound = product;
+                        store = CsvUtils.extractStoreName(entry.getValue());
+                    } else if (product.getPrice() < bestProductFound.getPrice()) {
+                        bestProductFound = product;
+                        store = CsvUtils.extractStoreName(entry.getValue());
+                    }
+                    break;
+                }
+            }
+        }
+
+        return new AbstractMap.SimpleEntry<>(store, bestProductFound);
+    }
+
+    // --------------------------------------------------------------------------------------
+    private Product applyDiscountIfPresent(Resource productCsv, Product product, LocalDate currentDate)
+            throws Exception {
+
+        Resource discountRes = searchForDiscountInCsvTitless(productCsv);
+        if (discountRes == null)
+            return product;
+
+        List<ProductDiscount> productDiscounts = productRepository
+                .returnProductDiscountFromSpecificCSV(discountRes.getFilename());
+
+        for (ProductDiscount prodDisc : productDiscounts) {
+            if (prodDisc.getProductId().equals(product.getProductId()) &&
+                    !prodDisc.getFromDate().isAfter(currentDate) &&
+                    !prodDisc.getToDate().isBefore(currentDate)) {
+
+                product.setPrice(product.getPrice() * (100 - prodDisc.getPercentageOfDiscount()) / 100);
+            }
+        }
+
+        return product;
+    }
+
+    private Resource searchForDiscountInCsvTitless(Resource res) throws Exception {
+
+        Map<String, Resource> productDiscountsCsvFilesList = productRepository.returnLatestResourcesDiscounts();
+
+        for (Map.Entry<String, Resource> productDiscountCsv : productDiscountsCsvFilesList.entrySet()) {
+
+            if (CsvUtils.extractDate(productDiscountCsv.getValue()).equals(CsvUtils.extractDate(res)) &&
+                    CsvUtils.extractStoreName(productDiscountCsv.getValue()).equals(CsvUtils.extractStoreName(res))) {
+                return productDiscountCsv.getValue();
+            }
+        }
+        return null;
+    }
+
 }

@@ -77,14 +77,14 @@ public class ProductRepository {
     // The current discounts are just in the latest discounts list (discounts that
     // are in older csv-s, even though the period has not expired, will not be
     // valid; only the latest discount csv-s are aplicable)
-    public Map<String, Resource> returnLatestResources() throws Exception {
+    public Map<String, Resource> returnLatestResourcesDiscounts() throws IOException {
 
         Map<String, Resource> latestResources = new HashMap<>();
 
         readResources();
 
         if (discountsPriceResources.isEmpty())
-            throw new Exception("Dis");
+            throw new IOException("No files found and read.");
 
         for (Map.Entry<String, List<Resource>> entry : discountsPriceResources.entrySet()) {
             Resource latest = entry.getValue().get(0);
@@ -101,21 +101,33 @@ public class ProductRepository {
         return latestResources;
     }
 
-    // public List<String> getFilenamesByDiscount(boolean isDiscount) throws
-    // Exception {
-    // PathMatchingResourcePatternResolver resolver = new
-    // PathMatchingResourcePatternResolver();
-    // Resource[] resources = resolver.getResources("classpath:data/*.csv");
-    //
-    // return Arrays.stream(resources)
-    // .map(Resource::getFilename)
-    // .filter(filename -> filename != null &&
-    // (isDiscount == filename.toLowerCase().contains("discount")))
-    // .collect(Collectors.toList());
-    // }
+    // ------------------------------------------------------------------------------------------
+    public Map<String, Resource> returnLatestResources() throws IOException {
+
+        Map<String, Resource> latestResources = new HashMap<>();
+
+        readResources();
+
+        if (fullPriceResources.isEmpty())
+            throw new IOException("No files found and read.");
+
+        for (Map.Entry<String, List<Resource>> entry : fullPriceResources.entrySet()) {
+            Resource latest = entry.getValue().get(0);
+
+            for (Resource instance : entry.getValue()) {
+                if (CsvUtils.extractDate(latest).isBefore(CsvUtils.extractDate(instance))) {
+                    latest = instance;
+                }
+            }
+
+            latestResources.put(entry.getKey(), latest);
+        }
+
+        return latestResources;
+    }
 
     // ------------------------------------------------------------------------------------------
-    public List<Product> returnProductFromSpecificCSV(String csv_name) throws Exception {
+    public List<Product> returnProductsFromSpecificCSV(String csv_name) throws Exception {
 
         readResources();
 
@@ -179,9 +191,9 @@ public class ProductRepository {
         char separator = headerLine.contains(";") ? ';' : ',';
         String sep = headerLine.contains(";") ? ";" : ",";
 
-        for (String column : headerLine.split(sep)) {
-            System.out.println("Column: [" + column + "]");
-        }
+        // for (String column : headerLine.split(sep)) {
+        // System.out.println("Column: [" + column + "]");
+        // }
 
         // Re-open input stream to re-read from the beginning
         reader.close();

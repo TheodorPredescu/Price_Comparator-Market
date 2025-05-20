@@ -31,7 +31,7 @@ public class CsvUtils {
     public static String extractStoreName(Resource res) {
         String filename = res.getFilename();
         if (filename == null || !filename.contains("_"))
-            return "unknown";
+            return null;
         return filename.substring(0, filename.indexOf('_')).toLowerCase();
     }
 
