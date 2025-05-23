@@ -45,14 +45,15 @@ public class ProductController {
     }
 
     @GetMapping("/getNewDiscounts")
-    public List<Map.Entry<String, ProductDiscount>> newDiscounts() {
+    public List<Map.Entry<String, ProductDiscount>> newDiscounts(
+            @RequestParam Integer daysAgo) {
 
         try (Scanner scanner = new Scanner(System.in)) {
 
-            System.out.println("How many days ago?");
-            Integer var = scanner.nextInt();
-            System.out.println(var);
-            Period now = Period.ofDays(var);
+            // System.out.println("How many days ago?");
+            // Integer var = scanner.nextInt();
+            // System.out.println(var);
+            Period now = Period.ofDays(daysAgo);
             List<Map.Entry<String, ProductDiscount>> topDiscounts = productService.getNewDiscounts(now);
 
             for (Map.Entry<String, ProductDiscount> elem : topDiscounts) {
@@ -87,14 +88,7 @@ public class ProductController {
     // ! The products differenciate by ID, not by name! If a product has the same
     // name, but a different ID, they will be considered different
     @GetMapping("/dailyShoppingBasketMonitoring")
-    public List<Map.Entry<String, Product>> dailyShoppingBasketMonitoring() {
-        List<String> productId = new ArrayList<>();
-        productId.add("P001");
-        productId.add("P002");
-        productId.add("P005");
-        productId.add("P012");
-        productId.add("P038");
-        productId.add("P138");
+    public List<Map.Entry<String, Product>> dailyShoppingBasketMonitoring(@RequestParam List<String> productId) {
 
         List<Map.Entry<String, Product>> products = productService.getBestPriceForProducts(productId);
 
