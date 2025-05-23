@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.Period;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -11,6 +12,7 @@ import java.util.stream.Collectors;
 import org.example.model.PriceHistory;
 import org.example.model.Product;
 import org.example.model.ProductDiscount;
+import org.example.model.UnitOfMeasure;
 import org.example.repository.ProductRepository;
 import org.example.util.CsvUtils;
 import org.springframework.core.io.Resource;
@@ -119,6 +121,8 @@ public class ProductService {
 
     // --------------------------------------------------------------------------------------
     // Daily Shopping Basket Monitoring
+    // ! The products differenciate by ID, not by name! If a product has the same
+    // name, but a different ID, they will be considered different
     public List<Map.Entry<String, Product>> getBestPriceForProducts(List<String> productIdList) {
 
         List<Map.Entry<String, Product>> productsFoundList = new ArrayList<>();
@@ -359,4 +363,58 @@ public class ProductService {
         return null;
     }
 
+    // --------------------------------------------------------------------------------------
+    public Product standardize(Product product) {
+
+        Product productCopy = new Product(product);
+
+        try {
+            if (UnitOfMeasure.isLiquid(productCopy.getPacakgeUnit())) {
+
+                productCopy
+                        .setPrice((productCopy.getPrice() * UnitOfMeasure.getLiquidFactor(productCopy.getPacakgeUnit()))
+                                / productCopy.getPackageQuantity());
+                productCopy.setPackageUnit(UnitOfMeasure.getLiquidBaseUnit());
+            } else if (UnitOfMeasure.isWeight(productCopy.getPacakgeUnit())) {
+                productCopy
+                        .setPrice((productCopy.getPrice() * UnitOfMeasure.getWeightFactor(productCopy.getPacakgeUnit()))
+                                / productCopy.getPackageQuantity());
+                productCopy.setPackageUnit(UnitOfMeasure.getWeightBaseUnit());
+            } else {
+                productCopy.setPrice(productCopy.getPrice() / productCopy.getPackageQuantity());
+            }
+            productCopy.setPackageQuantityToOne();
+
+            return productCopy;
+        } catch (Exception e) {
+            System.out.println("Error at getting standard price: " + e.getMessage());
+            return null;
+        }
+    }
+
+    // --------------------------------------------------------------------------------------
+    public Map<String, Float> searchForRecommendation(String productId, Float productPriceLimit)
+            throws Exception {
+
+        LocalDate date = LocalDate.now();
+        // The string is the store name and the float is the price;
+        // We can use map because we dont expect for a store to have the same object 2
+        // times
+        Map<String, Float> productsBelowPriceLimit = new HashMap<>();
+        Map<String, Resource> storesCsvData = productRepository.returnLatestResources();
+
+        for (Map.Entry<String, Resource> entry : storesCsvData.entrySet()) {
+            List<Product> productsOnStore = getDiscountedPricesListBasedOnStore(entry.getKey(),
+                    date);
+
+            for (Product product : productsOnStore) {
+                // If we want to check for price per unit or price per l/kg
+                // Product productStandard = standardize(product);
+                if (product.getProductId().equals(productId) && product.getPrice() <= productPriceLimit)
+                    productsBelowPriceLimit.put(entry.getKey(), product.getPrice());
+            }
+        }
+
+        return productsBelowPriceLimit;
+    }
 }

@@ -46,6 +46,17 @@ public class Product {
         this.currency = currency;
     }
 
+    public Product(Product product) {
+        this.productId = product.getProductId();
+        this.productName = product.getProductName();
+        this.productCategory = product.getProductCategory();
+        this.brand = product.getBrand();
+        this.packageQuantity = product.getPackageQuantity();
+        this.packageUnit = product.getPacakgeUnit();
+        this.price = product.getPrice();
+        this.currency = product.getCurrency();
+    }
+
     // ------------------------------------------------------------------------------------
 
     public String getCurrency() {
@@ -82,6 +93,14 @@ public class Product {
 
     public void setPrice(Float price) {
         this.price = price;
+    }
+
+    public void setPackageQuantityToOne() {
+        this.packageQuantity = 1f;
+    }
+
+    public void setPackageUnit(String unit) {
+        this.packageUnit = unit;
     }
 
 }

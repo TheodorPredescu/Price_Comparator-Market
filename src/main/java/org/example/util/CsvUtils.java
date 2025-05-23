@@ -5,6 +5,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.ResolverStyle;
 import java.time.temporal.ChronoField;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -15,6 +16,28 @@ import org.springframework.core.io.Resource;
 
 public class CsvUtils {
 
+    private static final Map<String, Float> liquidUnitsToLiter = new HashMap<>();
+    private static final Map<String, Float> weightUnitsToKg = new HashMap<>();
+
+    static {
+        weightUnitsToKg.put("kg", 1.0f); // kilogram
+        weightUnitsToKg.put("g", 0.001f); // gram
+        weightUnitsToKg.put("mg", 0.000001f); // milligram
+        weightUnitsToKg.put("lb", 0.453592f); // pound (avoirdupois)
+        weightUnitsToKg.put("oz", 0.0283495f); // ounce
+    }
+    static {
+        liquidUnitsToLiter.put("l", 1.0f); // liter
+        liquidUnitsToLiter.put("ml", 0.001f); // milliliter
+        liquidUnitsToLiter.put("cl", 0.01f); // centiliter
+        liquidUnitsToLiter.put("dl", 0.1f); // deciliter
+        liquidUnitsToLiter.put("fl oz", 0.0295735f);// US fluid ounce
+        liquidUnitsToLiter.put("pt", 0.473176f); // US pint
+        liquidUnitsToLiter.put("qt", 0.946353f); // US quart
+        liquidUnitsToLiter.put("gal", 3.78541f); // US gallon
+    }
+
+    // ---------------------------------------------------------------------------------------
     public static LocalDate extractDate(Resource res) {
         String filename = res.getFilename();
         if (filename == null || !filename.contains("_"))
@@ -62,6 +85,7 @@ public class CsvUtils {
         return null;
     }
 
+    // ---------------------------------------------------------------------------------------
     public void printResources(ProductRepository productRepository) {
 
         for (Map.Entry<String, List<Resource>> entry : productRepository.getFullPriceResources().entrySet()) {
