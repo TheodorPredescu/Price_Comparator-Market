@@ -27,7 +27,7 @@ public class ProductController {
             // The string is the store name
             // Those are based only by the latest data (data that is in the older csv-s is
             // considered expired)
-            topDiscounts = productService.getBestDiscounts(20);
+            topDiscounts = productService.getBestDiscounts(topN);
 
             for (Map.Entry<String, ProductDiscount> elem : topDiscounts) {
                 System.out
