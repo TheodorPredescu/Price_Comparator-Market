@@ -8,9 +8,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-
 import java.time.Period;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,7 +20,7 @@ public class ProductController {
     ProductService productService = new ProductService();
 
     @GetMapping("/getBestDiscounts")
-    public List<Map.Entry<String, ProductDiscount>> bestDiscounts() {
+    public List<Map.Entry<String, ProductDiscount>> bestDiscounts(@RequestParam Integer topN) {
 
         List<Map.Entry<String, ProductDiscount>> topDiscounts = null;
         try {

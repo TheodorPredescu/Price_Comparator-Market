@@ -57,7 +57,7 @@ This structure follows standard Spring Boot best practices for clean, maintainab
 - Displays discounts that were introduced n days ago (where n is a given value).
 - Only the latest CSV with discounts will be considered; Older CSV are assumed to be expired.
 
-###  Dynamic Price History Graphs
+###  Dynamic Price History Data
 - It lists the price history of products; a list of the products price, store, category, brand and date.
 - Provides data points to allow a frontend to display price trends over time for individual products.
 - Filterable by store, product category, or brand.
@@ -127,7 +127,7 @@ The backend exposes several REST API endpoints to query product pricing, discoun
 **Example Request:**  
 
 ```plaintext
-GET http://localhost:8080/getBestDiscounts
+GET http://localhost:8080/getBestDiscounts?topN=20
 ```
 
 
@@ -162,7 +162,9 @@ A JSON array of entries with store name and discount details (product, percentag
 **Endpoint:** `/priceHistory`
 
 **Example Request:**  
-
+```plaintext
+http://localhost:8080/priceHistory
+```
 
 **Response:**  
 A list of price history records including price, date, store, etc.
@@ -178,7 +180,7 @@ A list of price history records including price, date, store, etc.
 **Example Request:**  
 
 ```plaintext
-GET /dailyShoppingBasketMonitoring?productId=P001,P002,P005
+GET http://localhost:8080/dailyShoppingBasketMonitoring?productId=P001,P002,P005
 ```
 
 **Response:**  
